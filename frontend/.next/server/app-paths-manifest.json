@@ -1,0 +1,6 @@
+{
+  "/analysis/page": "app/analysis/page.js",
+  "/indices/page": "app/indices/page.js",
+  "/page": "app/page.js",
+  "/forecast/page": "app/forecast/page.js"
+}
