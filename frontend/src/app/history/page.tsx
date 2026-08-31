@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const API_BASE =
   typeof window !== "undefined"
@@ -12,6 +13,7 @@ type ShipmentRow = Record<string, number | string>;
 const LEVELS = ["sku", "model", "series", "plant"];
 
 export default function HistoryPage() {
+  const { t } = useLanguage();
   const [level, setLevel] = useState("plant");
   const [rows, setRows] = useState<ShipmentRow[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
@@ -48,15 +50,15 @@ export default function HistoryPage() {
   return (
     <main className="w-full min-h-screen flex flex-col p-4">
       <div className="shrink-0 flex items-center gap-4 mb-3">
-        <h1 className="text-xl font-bold text-slate-100">Shipment history</h1>
+        <h1 className="text-xl font-bold text-slate-100">{t("history.title")}</h1>
       </div>
       <p className="text-slate-500 text-sm mb-4">
-        Past shipments aggregated by the selected level and month (2023).
+        {t("history.subtitle")}
       </p>
 
       <div className="shrink-0 flex flex-wrap items-center gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-slate-400">Level</label>
+          <label className="text-sm font-medium text-slate-400">{t("history.level")}</label>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value)}
@@ -78,9 +80,9 @@ export default function HistoryPage() {
       )}
 
       {loading ? (
-        <div className="text-slate-500 py-8">Loading…</div>
+        <div className="text-slate-500 py-8">{t("common.loading")}</div>
       ) : rows.length === 0 ? (
-        <div className="text-slate-500 py-8">No shipment data found.</div>
+        <div className="text-slate-500 py-8">{t("history.noData")}</div>
       ) : (
         <section className="flex-1 min-h-0 border border-slate-600 rounded-lg overflow-auto bg-slate-900/40">
           <table className="w-full text-sm">
@@ -103,7 +105,7 @@ export default function HistoryPage() {
                   </th>
                 ))}
                 <th className="text-right px-3 py-2 font-medium text-slate-200">
-                  Total
+                  {t("common.total")}
                 </th>
               </tr>
             </thead>
