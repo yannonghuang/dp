@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const API_BASE =
   typeof window !== "undefined"
@@ -41,6 +42,7 @@ function VolumeChart({
   height?: number;
   padding?: { top: number; right: number; bottom: number; left: number };
 }) {
+  const { t } = useLanguage();
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
@@ -158,7 +160,7 @@ function VolumeChart({
   if (!data?.series?.length) {
     return (
       <div className="rounded-lg border border-slate-600 bg-slate-800/50 flex items-center justify-center text-slate-500" style={{ width, height }}>
-        No series data
+        {t("analysis.noSeriesData")}
       </div>
     );
   }
@@ -207,7 +209,7 @@ function VolumeChart({
         )}
         {/* Y-axis label */}
         <text x={12} y={padding.top + chartHeight / 2} textAnchor="middle" className="fill-slate-500 text-[10px]" transform={`rotate(-90, 12, ${padding.top + chartHeight / 2})`}>
-          Volume
+          {t("analysis.volumeAxisLabel")}
         </text>
         {/* Lines: one color per series; historic solid, forecast dashed */}
         {pointsBySeries.map((s, seriesIdx) => {
@@ -253,18 +255,18 @@ function VolumeChart({
       <div className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-2 text-xs items-center">
         {capped && (
           <span className="text-amber-500/90 mr-2">
-            Showing top {pointsBySeries.length} of {totalSeries} (by volume)
+            {t("analysis.showingTopOf", { n: pointsBySeries.length, total: totalSeries })}
           </span>
         )}
-        <span className="text-slate-500 mr-1">— Historic</span>
-        <span className="text-slate-500">- - Forecast</span>
+        <span className="text-slate-500 mr-1">{t("analysis.historicLegend")}</span>
+        <span className="text-slate-500">{t("analysis.forecastLegend")}</span>
         {pointsBySeries.slice(0, 10).map((s, i) => (
           <span key={s.key} className="flex items-center gap-1.5" title={s.label}>
             <span className="inline-block w-3 h-0.5 rounded" style={{ backgroundColor: SERIES_COLORS[i % SERIES_COLORS.length] }} />
             <span className="text-slate-400 truncate max-w-[140px]">{s.label}</span>
           </span>
         ))}
-        {pointsBySeries.length > 10 && <span className="text-slate-500">+{pointsBySeries.length - 10} more</span>}
+        {pointsBySeries.length > 10 && <span className="text-slate-500">{t("analysis.moreCount", { n: pointsBySeries.length - 10 })}</span>}
       </div>
     </div>
   );
@@ -273,6 +275,7 @@ function VolumeChart({
 const MAX_SERIES_OPTIONS = [6, 12, 24];
 
 export default function AnalysisPage() {
+  const { t } = useLanguage();
   const [level, setLevel] = useState("plant");
   const [model, setModel] = useState("xgb");
   const [resolution, setResolution] = useState<"month" | "quarter">("month");
@@ -297,15 +300,15 @@ export default function AnalysisPage() {
   return (
     <main className="w-full min-h-screen flex flex-col p-4">
       <div className="shrink-0 flex items-center gap-4 mb-3">
-        <h1 className="text-xl font-bold text-slate-100">Volume analysis</h1>
+        <h1 className="text-xl font-bold text-slate-100">{t("analysis.title")}</h1>
       </div>
       <p className="text-slate-500 text-sm mb-4">
-        Month-by-month volumes by rollup level (or quarterly when selected). Historic shipments (2023) and forecast (2024) overlaid.
+        {t("analysis.subtitle")}
       </p>
 
       <div className="shrink-0 flex flex-wrap items-center gap-3 mb-4">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-slate-400">Rollup</label>
+          <label className="text-sm font-medium text-slate-400">{t("analysis.rollup")}</label>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value)}
@@ -317,7 +320,7 @@ export default function AnalysisPage() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-slate-400">Model</label>
+          <label className="text-sm font-medium text-slate-400">{t("analysis.model")}</label>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
@@ -328,18 +331,18 @@ export default function AnalysisPage() {
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-slate-400">X-axis</label>
+          <label className="text-sm font-medium text-slate-400">{t("analysis.xAxis")}</label>
           <select
             value={resolution}
             onChange={(e) => setResolution(e.target.value as "month" | "quarter")}
             className="border border-slate-600 rounded px-2 py-1 text-sm bg-slate-800 text-slate-200"
           >
-            <option value="month">Monthly</option>
-            <option value="quarter">Quarterly</option>
+            <option value="month">{t("analysis.monthly")}</option>
+            <option value="quarter">{t("analysis.quarterly")}</option>
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-slate-400">Max series</label>
+          <label className="text-sm font-medium text-slate-400">{t("analysis.maxSeries")}</label>
           <select
             value={maxSeries}
             onChange={(e) => setMaxSeries(Number(e.target.value))}
@@ -359,7 +362,7 @@ export default function AnalysisPage() {
       )}
 
       {loading ? (
-        <div className="text-slate-500 py-8">Loading…</div>
+        <div className="text-slate-500 py-8">{t("common.loading")}</div>
       ) : (
         <div className="flex-1 min-w-0">
           <VolumeChart

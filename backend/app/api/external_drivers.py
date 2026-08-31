@@ -23,6 +23,7 @@ from app.services.external_drivers_subsystem import (
     update_values,
     fetch_and_populate,
 )
+from app.services.i18n import t, translate_registry
 
 router = APIRouter(prefix="/api/external-drivers", tags=["external-drivers"])
 
@@ -40,12 +41,12 @@ def _json_safe(obj):
 
 
 @router.get("/schema")
-def get_schema():
+def get_schema(lang: str = Query("en", description="UI language for names/descriptions: en or zh")):
     """
     Return the pre-determined set of external indices (id, name, description, default_value, unit).
     Future: agent can extend or suggest indices; this is the source of truth for "available indices".
     """
-    registry = get_registry()
+    registry = translate_registry(get_registry(), lang)
     year_months = get_required_year_months()
     return {
         "indices": registry,
@@ -56,21 +57,22 @@ def get_schema():
 
 
 @router.post("/reset")
-def post_reset():
+def post_reset(lang: str = Query("en")):
     """Clear the indices table (external_drivers.csv). Writes header-only file."""
     reset_drivers_csv()
-    return {"message": "Indices table cleared."}
+    return {"message": t("indices_cleared", lang)}
 
 
 @router.get("")
 def get_values(
     start: str | None = Query(None, description="Start year_month e.g. 2023-01"),
     end: str | None = Query(None, description="End year_month e.g. 2024-12"),
+    lang: str = Query("en"),
 ):
     """Return current external driver values (from CSV). Optional start/end filter."""
     df = load_drivers_csv()
     if df.empty:
-        return {"rows": [], "message": "No external drivers file found; run populate or POST values."}
+        return {"rows": [], "message": t("no_drivers_file", lang)}
     if start:
         df = df[df["year_month"] >= start]
     if end:
@@ -94,6 +96,7 @@ def post_values(body: UpdateValuesBody):
 class FetchBody(BaseModel):
     indices: list[str]  # e.g. ["industry_sentiment", "us_semi_tariff_china"]
     source_overrides: dict[str, dict] | None = None  # e.g. { "tax_index": { "type": "url", "url": "..." } } or { "type": "custom", "url": "..." }
+    lang: str = "en"
 
 
 @router.post("/fetch")
@@ -118,7 +121,7 @@ def post_fetch(body: FetchBody):
             "rows": len(df),
             "indices": list(df.columns.drop("year_month")),
             "path": str(EXTERNAL_DRIVERS_PATH),
-            "message": "Fetched from sources and populated external_drivers.csv",
+            "message": t("fetched_and_populated", body.lang),
         }
     except HTTPException:
         raise
@@ -286,6 +289,7 @@ class ProcessDocRepoBody(BaseModel):
     index_id: str = "trade_policy"
     start: str | None = None  # YYYY-MM filter
     end: str | None = None    # YYYY-MM filter
+    lang: str = "en"
 
 
 @router.post("/process-doc-repo")
@@ -301,7 +305,7 @@ def post_process_doc_repo(body: ProcessDocRepoBody):
             start_ym=body.start,
             end_ym=body.end,
         )
-        return {"applied": applied, "rows": total, "index_id": body.index_id, "message": f"Generated indices for {applied} month(s) from doc repo."}
+        return {"applied": applied, "rows": total, "index_id": body.index_id, "message": t("generated_from_doc_repo", body.lang, applied=applied)}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -317,6 +321,7 @@ class DocRepoCrawlBody(BaseModel):
     max_minutes: float | None = None
     max_hours: float | None = None
     max_articles_per_month: int | None = None
+    lang: str = "en"
 
 
 @router.post("/doc-repo/crawl")
@@ -349,17 +354,17 @@ def post_doc_repo_crawl(body: DocRepoCrawlBody):
         total_files = sum(result.values())
         if body.snapshot_only and result:
             ym = next(iter(result))
-            msg = f"Saved current snapshot to {ym} ({total_files} file(s)). Run monthly to build a time series."
+            msg = t("crawl_snapshot_saved", body.lang, ym=ym, total=total_files)
         else:
-            msg = f"Crawled {len(result)} month(s), wrote {total_files} file(s)."
+            msg = t("crawled_count", body.lang, months=len(result), total=total_files)
         if cancelled:
             if halt_reason == "time_limit":
-                msg = f"Crawl stopped after time limit ({len(result)} month(s), {total_files} file(s))."
+                msg = t("crawl_stopped_time_limit", body.lang, months=len(result), total=total_files)
             else:
-                msg = f"Crawl cancelled after {len(result)} month(s); wrote {total_files} file(s)."
+                msg = t("crawl_cancelled", body.lang, months=len(result), total=total_files)
         if total_files == 0 and errors:
             err_detail = "; ".join(f"{s}: {m}" for s, m in errors[:5])
-            msg += f" No files written. Errors: {err_detail}"
+            msg += t("no_files_written_errors", body.lang, err_detail=err_detail)
         return {
             "months": len(result),
             "files_written": total_files,
@@ -374,13 +379,13 @@ def post_doc_repo_crawl(body: DocRepoCrawlBody):
 
 
 @router.post("/doc-repo/crawl/cancel")
-def post_doc_repo_crawl_cancel():
+def post_doc_repo_crawl_cancel(lang: str = Query("en")):
     """
     Request the running crawl to stop after the current month. No-op if no crawl is running.
     """
     from app.services.trade_policy_crawler import request_crawl_cancel
     request_crawl_cancel()
-    return {"message": "Cancel requested; crawl will stop after the current month."}
+    return {"message": t("cancel_requested", lang)}
 
 
 def _year_months_from_range(start: str, end: str) -> list[str]:
@@ -405,6 +410,7 @@ def _year_months_from_range(start: str, end: str) -> list[str]:
 def get_us_semi_tariff_china_preview(
     start: str = Query("2018-01", description="Start year_month (YYYY-MM)"),
     end: str = Query("2026-12", description="End year_month (YYYY-MM)"),
+    lang: str = Query("en"),
 ):
     """
     Preview curated US import tariff rate (%) for semiconductor goods from China.
@@ -423,13 +429,14 @@ def get_us_semi_tariff_china_preview(
     return {
         "rows": _json_safe(rows),
         "effective_dates": effective_dates,
-        "message": "Curated from USTR/FR effective dates",
+        "message": t("curated_from_ustr_fr", lang),
     }
 
 
 class UsSemiTariffApplyBody(BaseModel):
     start: str | None = None  # YYYY-MM
     end: str | None = None    # YYYY-MM
+    lang: str = "en"
 
 
 @router.post("/us-semi-tariff-china/apply")
@@ -462,7 +469,7 @@ def post_us_semi_tariff_china_apply(body: UsSemiTariffApplyBody):
             raise HTTPException(status_code=400, detail="Apply failed")
         return {
             "rows": len(df),
-            "message": "US import tax (semiconductor, China) applied to external_drivers.csv",
+            "message": t("us_semi_applied", body.lang),
             "sample": _json_safe(df.tail(3).to_dict(orient="records")),
         }
     except HTTPException:

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const API_BASE =
   typeof window !== "undefined"
@@ -66,12 +67,13 @@ function ForecastTable({
   highlightedRowIndex: number | null;
   onRowHover: (index: number | null) => void;
 }) {
+  const { t } = useLanguage();
   const keyCols = keyColsFor(rows);
   return (
     <div className="flex flex-col h-full min-w-0">
       <h2 className="text-lg font-semibold text-slate-200 mb-2 shrink-0">{title}</h2>
       {loading ? (
-        <div className="text-slate-400 py-8">Loading…</div>
+        <div className="text-slate-400 py-8">{t("common.loading")}</div>
       ) : (
         <div className="border border-slate-600 rounded-lg flex-1 min-h-0 flex flex-col overflow-hidden">
           <div
@@ -88,7 +90,7 @@ function ForecastTable({
                   {MONTH_COLS.map((m) => (
                     <th key={m} className="text-right px-2 py-2 font-medium text-slate-200">{m}</th>
                   ))}
-                  <th className="text-right px-3 py-2 font-medium text-slate-200">Total</th>
+                  <th className="text-right px-3 py-2 font-medium text-slate-200">{t("common.total")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,6 +126,7 @@ function ForecastTable({
 }
 
 export default function ForecastPage() {
+  const { t } = useLanguage();
   const [level, setLevel] = useState("sku");
   const [levels, setLevels] = useState<string[]>([]);
   const [rowsXgb, setRowsXgb] = useState<ForecastRow[]>([]);
@@ -204,13 +207,13 @@ export default function ForecastPage() {
   return (
     <main className="w-full min-h-screen flex flex-col p-4">
       <div className="shrink-0 flex items-center gap-4 mb-3">
-        <h1 className="text-xl font-bold text-slate-100">Demand Forecast 2024</h1>
+        <h1 className="text-xl font-bold text-slate-100">{t("forecast.title")}</h1>
       </div>
-      <p className="text-slate-500 text-sm mb-6">XGBoost vs LightGBM — side-by-side with comparison KPIs</p>
+      <p className="text-slate-500 text-sm mb-6">{t("forecast.subtitle")}</p>
 
       <div className="shrink-0 flex flex-wrap items-center gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-slate-400">Level</label>
+          <label className="text-sm font-medium text-slate-400">{t("forecast.level")}</label>
           <select
             value={level}
             onChange={(e) => setLevel(e.target.value)}
@@ -223,7 +226,7 @@ export default function ForecastPage() {
         </div>
         <span className="text-slate-600">|</span>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-slate-400">Filter</span>
+          <span className="text-sm font-medium text-slate-400">{t("forecast.filter")}</span>
           {FILTER_SORT_COLS.filter((c) => c !== "PRODUCT_ID" || hasProductId).map((col) => (
             <input
               key={col}
@@ -237,7 +240,7 @@ export default function ForecastPage() {
         </div>
         <span className="text-slate-600">|</span>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-slate-400">Sort</label>
+          <label className="text-sm font-medium text-slate-400">{t("forecast.sort")}</label>
           <select
             value={sortBy ?? ""}
             onChange={(e) => setSortBy(e.target.value || null)}
@@ -263,7 +266,7 @@ export default function ForecastPage() {
 
       <section className="shrink-0 grid grid-cols-2 gap-3 mb-3 max-w-2xl">
         {loadingCompare ? (
-          <div className="text-slate-500 text-sm">Loading KPIs…</div>
+          <div className="text-slate-500 text-sm">{t("forecast.loadingKpis")}</div>
         ) : comparison ? (
           <>
             <div className="border border-slate-600 rounded p-3 bg-slate-800/50 text-sm">
@@ -272,7 +275,7 @@ export default function ForecastPage() {
                 <span className="text-slate-500">MAE</span><span className="font-mono text-slate-200">{comparison.xgb.kpis?.mae ?? "—"}</span>
                 <span className="text-slate-500">RMSE</span><span className="font-mono text-slate-200">{comparison.xgb.kpis?.rmse ?? "—"}</span>
                 <span className="text-slate-500">MAPE%</span><span className="font-mono text-slate-200">{comparison.xgb.kpis?.mape ?? "—"}</span>
-                <span className="text-slate-500">Vol 2024</span><span className="font-mono text-slate-200">{comparison.xgb.total_volume_2024?.toLocaleString() ?? "—"}</span>
+                <span className="text-slate-500">{t("forecast.vol2024")}</span><span className="font-mono text-slate-200">{comparison.xgb.total_volume_2024?.toLocaleString() ?? "—"}</span>
               </div>
             </div>
             <div className="border border-slate-600 rounded p-3 bg-slate-800/50 text-sm">
@@ -281,7 +284,7 @@ export default function ForecastPage() {
                 <span className="text-slate-500">MAE</span><span className="font-mono text-slate-200">{comparison.lgbm.kpis?.mae ?? "—"}</span>
                 <span className="text-slate-500">RMSE</span><span className="font-mono text-slate-200">{comparison.lgbm.kpis?.rmse ?? "—"}</span>
                 <span className="text-slate-500">MAPE%</span><span className="font-mono text-slate-200">{comparison.lgbm.kpis?.mape ?? "—"}</span>
-                <span className="text-slate-500">Vol 2024</span><span className="font-mono text-slate-200">{comparison.lgbm.total_volume_2024?.toLocaleString() ?? "—"}</span>
+                <span className="text-slate-500">{t("forecast.vol2024")}</span><span className="font-mono text-slate-200">{comparison.lgbm.total_volume_2024?.toLocaleString() ?? "—"}</span>
               </div>
             </div>
           </>
