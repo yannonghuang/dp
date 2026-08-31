@@ -13,7 +13,10 @@ services:
     environment:
       - DATA_DIR=/data
       - LINKAGE_PATH=/output/linkage_report.csv
-      - OPENAI_API_KEY=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
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+      - DASHSCOPE_BASE_URL=${DASHSCOPE_BASE_URL:-}
+      - ASSESSMENT_MODEL=${ASSESSMENT_MODEL:-qwen3.7-plus}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]

@@ -1,6 +1,7 @@
 """
 Turn raw text into a numeric score for non-deterministic indices (e.g. US–China relationship).
-Uses LLM when OPENAI_API_KEY is set; otherwise returns a stub value for development.
+Uses Qwen (DashScope) when DASHSCOPE_API_KEY is set, falling back to OpenAI when
+OPENAI_API_KEY is set instead; otherwise returns a stub value for development.
 """
 
 from __future__ import annotations
@@ -39,7 +40,8 @@ def text_to_numeric(
 ) -> tuple[float, str | None]:
     """
     Convert raw text to a numeric score for the given non-deterministic index.
-    Returns (value, year_month). Uses LLM if OPENAI_API_KEY is set; else stub.
+    Returns (value, year_month). Uses Qwen (DashScope) if DASHSCOPE_API_KEY is
+    set, else OpenAI if OPENAI_API_KEY is set; else stub.
     """
     reg = next((r for r in get_registry() if r["id"] == index_id), None)
     if reg is None:
@@ -52,8 +54,20 @@ def text_to_numeric(
     scale_max = float(scale.get("max", 5))
     scale_desc = scale.get("description", "1 = cooperative, 5 = confrontational")
 
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key or not text or not text.strip():
+    dashscope_key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if dashscope_key:
+        api_key = dashscope_key
+        base_url = os.environ.get("DASHSCOPE_BASE_URL", "").strip() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+        model = os.environ.get("ASSESSMENT_MODEL", "").strip() or "qwen3.7-plus"
+    elif openai_key:
+        api_key = openai_key
+        base_url = None
+        model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+    else:
+        return _stub_value(index_id), year_month
+
+    if not text or not text.strip():
         return _stub_value(index_id), year_month
 
     try:
@@ -62,7 +76,7 @@ def text_to_numeric(
         return _stub_value(index_id), year_month
 
     try:
-        client = openai.OpenAI(api_key=api_key)
+        client = openai.OpenAI(api_key=api_key, base_url=base_url)
         prompt = (
             f"You are scoring the US–China relationship from a short text. "
             f"Output a single number between {scale_min} and {scale_max}. "
@@ -70,7 +84,7 @@ def text_to_numeric(
             f"Reply with only the number, no explanation.\n\nText:\n{text.strip()[:4000]}"
         )
         resp = client.chat.completions.create(
-            model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+            model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=20,
         )
