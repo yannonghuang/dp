@@ -5,6 +5,7 @@ from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from app.api.forecast import router as forecast_router
 from app.api.external_drivers import router as external_drivers_router
 from app.api.analysis import router as analysis_router
+from app.api.history import router as history_router
 
 app = FastAPI(title="Demand Forecast API", version="1.0.0")
 
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(forecast_router)
 app.include_router(external_drivers_router)
 app.include_router(analysis_router)
+app.include_router(history_router)
 
 
 @app.get("/")

@@ -20,6 +20,10 @@ export default function RootLayout({
             Home
           </Link>
           <span className="text-slate-600">|</span>
+          <Link href="/history" className="text-slate-300 hover:text-slate-100 text-sm font-medium">
+            History
+          </Link>
+          <span className="text-slate-600">|</span>
           <Link href="/indices" className="text-slate-300 hover:text-slate-100 text-sm font-medium">
             Indices
           </Link>
