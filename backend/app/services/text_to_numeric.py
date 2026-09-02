@@ -56,10 +56,14 @@ def text_to_numeric(
 
     dashscope_key = os.environ.get("DASHSCOPE_API_KEY", "").strip()
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    extra_body: dict | None = None
     if dashscope_key:
         api_key = dashscope_key
         base_url = os.environ.get("DASHSCOPE_BASE_URL", "").strip() or "https://dashscope.aliyuncs.com/compatible-mode/v1"
         model = os.environ.get("ASSESSMENT_MODEL", "").strip() or "qwen3.7-plus"
+        # Qwen3 models default to extended chain-of-thought reasoning, which is
+        # unnecessary for a single-number score and adds 10x+ latency per call.
+        extra_body = {"enable_thinking": False}
     elif openai_key:
         api_key = openai_key
         base_url = None
@@ -87,6 +91,7 @@ def text_to_numeric(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=20,
+            extra_body=extra_body,
         )
         content = (resp.choices[0].message.content or "").strip()
         value = _parse_scale_from_llm(content, scale_min, scale_max)

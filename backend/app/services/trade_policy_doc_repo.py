@@ -8,6 +8,7 @@ Local doc repo for US–China relationship (trade_policy).
 from __future__ import annotations
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from app.config import TRADE_POLICY_DOCS_PATH
@@ -115,10 +116,16 @@ def generate_indices_from_repo(
         return 0, 0
 
     path = drivers_path or EXTERNAL_DRIVERS_PATH
-    rows = []
-    for ym in months:
+
+    def _score_month(ym: str) -> dict:
         text = read_month_docs(repo_path, ym)
         value, _ = text_to_numeric(index_id, text or "(no content)", ym)
-        rows.append({"year_month": ym, index_id: value})
+        return {"year_month": ym, index_id: value}
+
+    # Each call is a blocking LLM request; run months concurrently so total
+    # latency is roughly max(per-call latency) instead of sum(per-call latency).
+    with ThreadPoolExecutor(max_workers=min(8, len(months))) as executor:
+        rows = list(executor.map(_score_month, months))
+
     df = update_values(rows, path=path)
     return len(rows), len(df)
